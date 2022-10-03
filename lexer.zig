@@ -112,11 +112,21 @@ pub const TokenVal = union(enum) {
         }
     }
 
-    pub inline fn bytesVal(self: Self) ![]const u8 {
+    pub inline fn bytesVal(self: Self, allocator: std.mem.Allocator) !std.ArrayList(u8) {
         switch (self) {
-            .str => |sval| return sval,
-            .num => |nval| return nval.bytesVal(),
-            .ch => |cval| return &[_]u8{cval},
+            .str => |sval| {
+                var bytes = std.ArrayList(u8).init(allocator);
+                errdefer bytes.deinit();
+                try bytes.appendSlice(sval);
+                return bytes;
+            },
+            .num => |nval| return nval.bytesVal(allocator),
+            .ch => |cval| {
+                var bytes = std.ArrayList(u8).init(allocator);
+                errdefer bytes.deinit();
+                try bytes.append(cval);
+                return bytes;
+            },
         }
     }
 };
@@ -142,8 +152,8 @@ pub const NumberVal = union(enum) {
         }
     }
 
-    inline fn bytesVal(self: Self) ![]const u8 {
-        return self.toImmForConstData().encode();
+    inline fn bytesVal(self: Self, allocator: std.mem.Allocator) !std.ArrayList(u8) {
+        return self.toImmForConstData().encode(allocator);
     }
 };
 
@@ -167,12 +177,12 @@ pub const Token = struct {
         }
     }
 
-    pub fn bytesValue(self: Self) ![]const u8 {
+    pub fn bytesValue(self: Self, allocator: std.mem.Allocator) !std.ArrayList(u8) {
         if (self.type == .num or self.type == .str or self.type == .chr) {} else {
             return error.InvalidTokenKind;
         }
 
-        return self.val.bytesVal();
+        return self.val.bytesVal(allocator);
     }
 };
 
