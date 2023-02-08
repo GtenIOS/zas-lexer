@@ -155,6 +155,13 @@ pub const NumberVal = union(enum) {
     inline fn bytesVal(self: Self, allocator: std.mem.Allocator) !std.ArrayList(u8) {
         return self.toImmForConstData().encode(allocator);
     }
+
+    pub inline fn toISize(self: Self) !isize {
+        switch (self) {
+            .int => |ival| return ival,
+            else => return error.InvalidNumberType,
+        }
+    }
 };
 
 pub const Token = struct {
@@ -183,6 +190,14 @@ pub const Token = struct {
         }
 
         return self.val.bytesVal(allocator);
+    }
+
+    pub fn numVal(self: Self) !NumberVal {
+        if (self.type == .num) {} else {
+            return error.InvalidTokenKind;
+        }
+
+        return self.val.numVal();
     }
 };
 
